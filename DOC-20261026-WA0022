@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Meal Opt-Out · Food-Waste System</title>
+<style>
+:root{--bg:#f5f8f3;--card:#fff;--ink:#101c14;--mut:#586a5d;--line:#d6e0d3;--g:#1f7a4a;--gs:#e1f0e6;--warn:#b3261e;--btn:#101c14;--btnt:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1511;--card:#16201a;--ink:#e8f1ea;--mut:#9bb0a2;--line:#2a3a31;--g:#49c27f;--gs:#1c3326;--warn:#ff8a80;--btn:#e8f1ea;--btnt:#0e1511;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:560px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:4px 0 2px;text-transform:uppercase}
+h2{font-size:16px;margin:0 0 6px}
+.sub,.note{color:var(--mut);font-size:14px}
+.sub{margin:0 0 14px}.note{font-size:13px;margin:8px 0 0}
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tabs button{flex:1;padding:10px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;font:inherit;font-weight:600}
+.tabs button.on{background:var(--btn);color:var(--btnt);border-color:var(--btn)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+label{display:block;font-weight:600;margin:10px 0 4px;font-size:14px}
+input[type=text],input[type=number],input[type=password]{width:100%;padding:11px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}
+.meals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
+.meal{position:relative;margin:0}
+.meal input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.meal span{display:block;text-align:center;padding:12px 4px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);font-weight:600}
+.meal input:checked+span{background:var(--g);border-color:var(--g);color:#fff}
+.go{width:100%;margin-top:14px;padding:13px;border:0;border-radius:10px;background:var(--btn);color:var(--btnt);font:inherit;font-weight:700}
+.msg{margin:10px 0 0;font-size:14px;min-height:20px;color:var(--g)}.msg.err{color:var(--warn)}
+.hero{background:var(--gs);border-color:transparent}
+.big{font-size:40px;font-weight:800;color:var(--g);line-height:1.1}
+.row{display:flex;gap:16px;margin-top:8px;color:var(--mut);font-size:14px;flex-wrap:wrap}.row b{color:var(--ink)}
+.bar{margin:12px 0}.bar .t{display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px}
+.track{height:12px;border-radius:6px;background:var(--bg);border:1px solid var(--line);overflow:hidden}
+.fill{height:100%;background:var(--g);min-width:2px}
+.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:7px 6px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:600}
+.list{max-height:260px;overflow-y:auto;font-size:14px}.list div{padding:7px 0;border-bottom:1px solid var(--line)}.list small{color:var(--mut)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.demo{background:var(--gs);color:var(--g);border-radius:10px;padding:8px 12px;font-size:13px;margin-bottom:14px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Food-Waste System</h1>
+  <p class="sub">Opt out of tomorrow’s meals so the canteen cooks only what’s needed.</p>
+  <div class="demo" id="demo" hidden>Demo mode: data stays on this device. Paste your Apps Script link into SCRIPT_URL to share data.</div>
+  <div class="tabs"><button id="tS" class="on">Student</button><button id="tM">Canteen manager</button></div>
+
+  <section id="pS">
+    <div class="card">
+      <h2>Tomorrow: <span id="dl"></span></h2>
+      <label for="name">Your name</label><input type="text" id="name" autocomplete="name">
+      <label for="roll">Roll number</label><input type="text" id="roll" autocomplete="off">
+      <label>I won’t eat at the canteen for:</label>
+      <div class="meals" id="meals"></div>
+      <button class="go" id="submit">Submit opt-out</button>
+      <p class="msg" id="msg"></p>
+      <p class="note">Submit again to change your choice. Untick everything and submit to cancel.</p>
+    </div>
+  </section>
+
+  <section id="pM" hidden>
+    <div class="card" id="lock">
+      <h2>Manager PIN</h2>
+      <input type="password" id="pin" inputmode="numeric" autocomplete="off">
+      <button class="go" id="open">Open dashboard</button>
+      <p class="msg" id="pmsg"></p>
+    </div>
+    <div id="dash" hidden>
+      <div class="card hero">
+        <div class="note" style="margin:0 0 4px">Food saved by cancelling tomorrow’s meals</div>
+        <div class="big"><span id="kg">0</span> kg</div>
+        <div class="row"><span><b id="por">0</b> portions</span><span><b id="cost">₹0</b> saved</span><span><b id="ppl">0</b> students opted out</span></div>
+      </div>
+      <div class="card">
+        <h2>Cook plan for <span id="dl2"></span></h2>
+        <div id="bars"></div>
+        <div class="scroll"><table><thead><tr><th>Meal</th><th>Usual</th><th>Opt-outs</th><th>Cook</th><th>Saved kg</th></tr></thead><tbody id="tb"></tbody></table></div>
+        <button class="go" id="refresh">Refresh now</button>
+        <p class="note" id="upd"></p>
+      </div>
+      <div class="card"><h2>Declarations</h2><div class="list" id="list"></div></div>
+      <div class="card">
+        <h2>Settings (this device)</h2>
+        <div class="grid2">
+          <div><label for="sBatch">Usual portions per meal</label><input type="number" id="sBatch" min="0"></div>
+          <div><label for="sStud">Students on campus</label><input type="number" id="sStud" min="0"></div>
+          <div><label for="sKg">Food per portion (kg)</label><input type="number" id="sKg" min="0" step="0.05"></div>
+          <div><label for="sCost">Cost per portion (₹)</label><input type="number" id="sCost" min="0"></div>
+        </div>
+        <button class="go" id="sSave">Save settings</button>
+        <p class="note">Assumes each opt-out removes one portion from that meal’s usual batch.</p>
+      </div>
+    </div>
+  </section>
+</div>
+<script>
+// Paste your Google Apps Script web app link here (see Code.gs). Leave empty for demo mode.
+var SCRIPT_URL = "";
+
+var MEALS=["Breakfast","Lunch","Dinner"];
+var DEF={batch:900,students:1200,kg:0.35,cost:40};
+var DEMO=!SCRIPT_URL, $=function(i){return document.getElementById(i)};
+var t=new Date();t.setDate(t.getDate()+1);
+var DATE=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
+var cfg=Object.assign({},DEF),rows=[],pin="",timer=null;
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function say(el,txt,err){el.textContent=txt;el.className="msg"+(err?" err":"")}
+try{cfg=Object.assign(cfg,JSON.parse(store("fw_cfg")||"{}"))}catch(e){}
+
+function api(p){
+  if(DEMO){
+    var all=[];try{all=JSON.parse(store("fw_demo")||"[]")}catch(e){}
+    if(p.action==="submit"){
+      all=all.filter(function(r){return !(r.date===p.date&&r.roll===p.roll)});
+      if(p.meals)all.push({date:p.date,roll:p.roll,name:p.name,meals:p.meals.split(","),at:Date.now()});
+      store("fw_demo",JSON.stringify(all));return Promise.resolve({ok:true});
+    }
+    return Promise.resolve({ok:true,rows:all.filter(function(r){return r.date===p.date})});
+  }
+  var q=Object.keys(p).map(function(k){return encodeURIComponent(k)+"="+encodeURIComponent(p[k])}).join("&");
+  return fetch(SCRIPT_URL+"?"+q).then(function(r){return r.json()});
+}
+
+$("demo").hidden=!DEMO;
+var L=t.toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"short"});
+$("dl").textContent=L;$("dl2").textContent=L;
+$("meals").innerHTML=MEALS.map(function(m){return '<label class="meal"><input type="checkbox" value="'+m+'"><span>'+m+'</span></label>'}).join("");
+$("name").value=store("fw_name")||"";$("roll").value=store("fw_roll")||"";
+function tab(m){$("pS").hidden=m;$("pM").hidden=!m;$("tS").className=m?"":"on";$("tM").className=m?"on":""}
+$("tS").onclick=function(){tab(false)};$("tM").onclick=function(){tab(true)};
+if(location.hash==="#manager")tab(true);
+
+$("submit").onclick=function(){
+  var name=$("name").value.trim(),roll=$("roll").value.trim();
+  var meals=[].slice.call(document.querySelectorAll("#meals input:checked")).map(function(i){return i.value});
+  if(!name||!roll){say($("msg"),"Enter your name and roll number.",true);return}
+  store("fw_name",name);store("fw_roll",roll);
+  say($("msg"),"Saving…");
+  api({action:"submit",date:DATE,roll:roll,name:name,meals:meals.join(",")}).then(function(r){
+    if(!r.ok)throw 0;
+    say($("msg"),meals.length?"Saved. The canteen will cook less for: "+meals.join(", ")+".":"Opt-out cancelled.");
+  }).catch(function(){say($("msg"),"Couldn’t save. Check your connection and try again.",true)});
+};
+
+function render(){
+  var per=MEALS.map(function(m){var o=rows.filter(function(r){return r.meals.indexOf(m)>-1}).length;return{m:m,o:o,cook:Math.max(0,cfg.batch-o)}});
+  var tot=per.reduce(function(a,p){return a+p.o},0);
+  $("kg").textContent=(tot*cfg.kg).toFixed(1);
+  $("por").textContent=tot.toLocaleString();
+  $("cost").textContent="₹"+Math.round(tot*cfg.cost).toLocaleString();
+  $("ppl").textContent=rows.length+" of "+cfg.students.toLocaleString();
+  $("bars").innerHTML=per.map(function(p){var w=cfg.batch?Math.min(100,p.o/cfg.batch*100):0;
+    return '<div class="bar"><div class="t"><span>'+p.m+'</span><span>'+p.o+' fewer portions</span></div><div class="track"><div class="fill" style="width:'+w+'%"></div></div></div>'}).join("");
+  $("tb").innerHTML=per.map(function(p){return"<tr><td>"+p.m+"</td><td>"+cfg.batch+"</td><td>"+p.o+"</td><td><b>"+p.cook+"</b></td><td>"+(p.o*cfg.kg).toFixed(1)+"</td></tr>"}).join("");
+  var s=rows.slice().sort(function(a,b){return b.at-a.at});
+  $("list").innerHTML=s.length?s.map(function(r){return"<div><b>"+esc(r.name)+"</b> <small>· "+esc(r.roll)+"</small><br><small>"+esc(r.meals.join(", "))+"</small></div>"}).join(""):"<div><small>No opt-outs declared yet.</small></div>";
+}
+function load(){
+  return api({action:"list",date:DATE,pin:pin}).then(function(r){
+    if(!r.ok){say($("pmsg"),r.error==="pin"?"Wrong PIN.":"Couldn’t load data.",true);return false}
+    rows=(r.rows||[]).map(function(x){x.meals=Array.isArray(x.meals)?x.meals:[];return x});
+    render();$("upd").textContent="Updated "+new Date().toLocaleTimeString();return true;
+  }).catch(function(){say($("pmsg"),"Couldn’t reach the server.",true);return false});
+}
+$("open").onclick=function(){
+  pin=$("pin").value.trim();say($("pmsg"),"Checking…");
+  load().then(function(ok){if(!ok)return;$("lock").hidden=true;$("dash").hidden=false;clearInterval(timer);timer=setInterval(load,20000)});
+};
+$("refresh").onclick=load;
+$("sBatch").value=cfg.batch;$("sStud").value=cfg.students;$("sKg").value=cfg.kg;$("sCost").value=cfg.cost;
+$("sSave").onclick=function(){
+  cfg={batch:+$("sBatch").value||0,students:+$("sStud").value||0,kg:+$("sKg").value||0,cost:+$("sCost").value||0};
+  store("fw_cfg",JSON.stringify(cfg));render();
+};
+</script>
+</body>
+</html>
